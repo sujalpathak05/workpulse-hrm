@@ -5,6 +5,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { getMe } from './redux/slices/authSlice';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 // Auth
 import Login from './pages/auth/Login';
@@ -59,6 +60,7 @@ const App = () => {
         theme="light"
         toastClassName="rounded-xl text-sm"
       />
+      <ErrorBoundary>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
@@ -120,6 +122,7 @@ const App = () => {
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
+      </ErrorBoundary>
     </Router>
   );
 };
