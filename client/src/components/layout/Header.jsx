@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, Menu } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import api from '../../utils/api';
 import { format } from 'date-fns';
 
-const Header = ({ title }) => {
+const Header = ({ title, onMenuClick }) => {
   const { user } = useSelector((s) => s.auth);
   const [notifications, setNotifications] = useState([]);
   const [unread, setUnread] = useState(0);
@@ -31,13 +31,22 @@ const Header = ({ title }) => {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-40">
-      <div>
-        <h1 className="text-xl font-bold text-gray-800">{title}</h1>
-        <p className="text-xs text-gray-500">{format(new Date(), 'EEEE, MMMM d, yyyy')}</p>
+    <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-30">
+      <div className="flex items-center gap-3">
+        {/* Hamburger — mobile only */}
+        <button
+          onClick={onMenuClick}
+          className="lg:hidden p-2 rounded-xl hover:bg-gray-100 transition text-gray-600"
+        >
+          <Menu size={20} />
+        </button>
+        <div>
+          <h1 className="text-base sm:text-xl font-bold text-gray-800 leading-tight">{title}</h1>
+          <p className="text-xs text-gray-500 hidden sm:block">{format(new Date(), 'EEEE, MMMM d, yyyy')}</p>
+        </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         {/* Notifications */}
         <div className="relative">
           <button
@@ -53,7 +62,7 @@ const Header = ({ title }) => {
           </button>
 
           {showDropdown && (
-            <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 z-50">
+            <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 bg-white rounded-2xl shadow-xl border border-gray-100 z-50">
               <div className="flex items-center justify-between p-4 border-b">
                 <h3 className="font-semibold text-gray-800">Notifications</h3>
                 {unread > 0 && (
@@ -69,7 +78,7 @@ const Header = ({ title }) => {
                   notifications.map((n) => (
                     <div
                       key={n._id}
-                      className={`p-4 border-b last:border-b-0 hover:bg-gray-50 transition ${!n.isRead ? 'bg-blue-50' : ''}`}
+                      className={`p-3 border-b last:border-b-0 hover:bg-gray-50 transition ${!n.isRead ? 'bg-blue-50' : ''}`}
                     >
                       <p className="text-sm font-medium text-gray-800">{n.title}</p>
                       <p className="text-xs text-gray-500 mt-0.5">{n.message}</p>
@@ -84,7 +93,7 @@ const Header = ({ title }) => {
 
         {/* User Avatar */}
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-blue-500 flex items-center justify-center text-white font-semibold overflow-hidden">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-500 flex items-center justify-center text-white font-semibold overflow-hidden">
             {user?.profileImage ? (
               <img src={user.profileImage} alt={user.name} className="w-full h-full object-cover" />
             ) : (

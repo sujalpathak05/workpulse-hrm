@@ -11,16 +11,16 @@ const StatCard = ({ title, value, icon: Icon, color, subtitle }) => {
   };
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition">
+    <div className="bg-white rounded-2xl p-3 sm:p-5 shadow-sm border border-gray-100 hover:shadow-md transition">
       <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm text-gray-500 font-medium">{title}</p>
-          <p className="text-3xl font-bold text-gray-800 mt-1">{value}</p>
-          {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
+        <div className="min-w-0">
+          <p className="text-xs sm:text-sm text-gray-500 font-medium truncate">{title}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-gray-800 mt-1">{value}</p>
+          {subtitle && <p className="text-xs text-gray-400 mt-0.5 truncate">{subtitle}</p>}
         </div>
         {Icon && (
-          <div className={`p-3 rounded-xl ${colorMap[color] || colorMap.blue}`}>
-            <Icon size={22} />
+          <div className={`p-2 sm:p-3 rounded-xl flex-shrink-0 ${colorMap[color] || colorMap.blue}`}>
+            <Icon size={18} className="sm:w-5 sm:h-5" />
           </div>
         )}
       </div>
