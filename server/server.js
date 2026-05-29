@@ -14,16 +14,15 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',') : ['http://localhost:3000'],
-  credentials: true,
+  origin: '*',
+  credentials: false,
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 app.use(fileUpload({
-  useTempFiles: true,
-  tempFileDir: '/tmp/',
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  useTempFiles: false,
+  limits: { fileSize: 10 * 1024 * 1024 },
 }));
 
 // Routes
@@ -47,8 +46,7 @@ app.use((req, res) => {
 // Error handler
 app.use(errorHandler);
 
-// Local development mein server listen karo
-// Vercel pe module.exports se handle hota hai
+// Local dev mein listen karo
 if (process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {
