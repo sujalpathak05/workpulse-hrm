@@ -41,8 +41,9 @@ const attendanceSlice = createSlice({
   name: 'attendance',
   initialState: {
     today: null,
-    hasCheckedIn: false,
-    hasCheckedOut: false,
+    isCurrentlyIn: false,
+    totalSessions: 0,
+    totalWorkHours: 0,
     records: [],
     summary: null,
     loading: false,
@@ -57,17 +58,19 @@ const attendanceSlice = createSlice({
       .addCase(checkIn.fulfilled, (state, action) => {
         state.loading = false;
         state.today = action.payload.attendance;
-        state.hasCheckedIn = true;
+        state.isCurrentlyIn = true;
+        state.totalSessions = action.payload.sessionNumber || 1;
       })
       .addCase(checkIn.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-      .addCase(checkOut.pending, (state) => { state.loading = true; })
+      .addCase(checkOut.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(checkOut.fulfilled, (state, action) => {
         state.loading = false;
         state.today = action.payload.attendance;
-        state.hasCheckedOut = true;
+        state.isCurrentlyIn = false;
+        state.totalWorkHours = action.payload.totalWorkHours || 0;
       })
       .addCase(checkOut.rejected, (state, action) => {
         state.loading = false;
@@ -75,8 +78,9 @@ const attendanceSlice = createSlice({
       })
       .addCase(getTodayStatus.fulfilled, (state, action) => {
         state.today = action.payload.attendance;
-        state.hasCheckedIn = action.payload.hasCheckedIn;
-        state.hasCheckedOut = action.payload.hasCheckedOut;
+        state.isCurrentlyIn = action.payload.isCurrentlyIn;
+        state.totalSessions = action.payload.totalSessions;
+        state.totalWorkHours = action.payload.totalWorkHours;
       })
       .addCase(getMyAttendance.pending, (state) => { state.loading = true; })
       .addCase(getMyAttendance.fulfilled, (state, action) => {
