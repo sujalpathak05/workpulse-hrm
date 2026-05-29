@@ -30,20 +30,45 @@ const checkIn = async (req, res) => {
   }
 
   const settings = await CompanySettings.findOne();
-  const officeLat = settings?.officeLocation?.latitude || parseFloat(process.env.OFFICE_LATITUDE);
-  const officeLon = settings?.officeLocation?.longitude || parseFloat(process.env.OFFICE_LONGITUDE);
-  const officeRadius = settings?.officeLocation?.radius || parseInt(process.env.OFFICE_RADIUS) || 50;
 
-  const { isValid, distance } = isWithinRadius(latitude, longitude, officeLat, officeLon, officeRadius);
+  // Dono locations check karo — kisi bhi ek ke andar ho to allow
+  const locations = (settings?.officeLocations?.length > 0)
+    ? settings.officeLocations
+    : [
+        { name: 'Office 1', latitude: 28.586923, longitude: 77.315355, radius: 50 },
+        { name: 'Office 2', latitude: 28.599652, longitude: 77.339100, radius: 50 },
+      ];
 
-  if (!isValid) {
+  let nearestLocation = null;
+  let minDistance = Infinity;
+  let locationVerified = false;
+
+  for (const loc of locations) {
+    const { isValid, distance } = isWithinRadius(latitude, longitude, loc.latitude, loc.longitude, loc.radius);
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearestLocation = loc;
+    }
+    if (isValid) {
+      locationVerified = true;
+      nearestLocation = loc;
+      minDistance = distance;
+      break;
+    }
+  }
+
+  if (!locationVerified) {
+    const locNames = locations.map(l => l.name).join(' ya ');
     return res.status(403).json({
       success: false,
-      message: `Attendance rejected! You are ${distance}m away from office. Required: within ${officeRadius}m.`,
-      distance,
-      required: officeRadius,
+      message: `Attendance rejected! Aap ${locNames} se ${minDistance}m door hain. Required: within ${nearestLocation?.radius || 50}m.`,
+      distance: minDistance,
+      required: nearestLocation?.radius || 50,
+      nearestOffice: nearestLocation?.name,
     });
   }
+
+  const distance = minDistance;
 
   const today = getTodayDate();
   let attendance = await Attendance.findOne({ user: req.user._id, date: today });
