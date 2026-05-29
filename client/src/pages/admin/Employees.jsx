@@ -2,10 +2,17 @@ import React, { useEffect, useState } from 'react';
 import api from '../../utils/api';
 import Layout from '../../components/layout/Layout';
 import { toast } from 'react-toastify';
-import { Plus, Search, Edit, UserX, UserCheck, X } from 'lucide-react';
+import { Plus, Search, Edit, UserX, UserCheck, X, Eye, EyeOff, Key } from 'lucide-react';
 import { format } from 'date-fns';
 
 const departments = ['HR', 'Engineering', 'Sales', 'Marketing', 'Finance', 'Operations', 'Support', 'Other'];
+
+const emptyForm = {
+  name: '', email: '', phone: '', department: 'Engineering',
+  designation: '', salary: '', shiftStart: '09:00', shiftEnd: '18:00',
+  joiningDate: format(new Date(), 'yyyy-MM-dd'),
+  password: '', confirmPassword: '',
+};
 
 const EmployeesPage = () => {
   const [employees, setEmployees] = useState([]);
@@ -13,11 +20,17 @@ const EmployeesPage = () => {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editEmployee, setEditEmployee] = useState(null);
-  const [form, setForm] = useState({
-    name: '', email: '', phone: '', department: 'Engineering',
-    designation: '', salary: '', shiftStart: '09:00', shiftEnd: '18:00',
-    joiningDate: format(new Date(), 'yyyy-MM-dd'),
-  });
+  const [form, setForm] = useState(emptyForm);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Password reset modal
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetTarget, setResetTarget] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showNewPwd, setShowNewPwd] = useState(false);
 
   const fetchEmployees = async () => {
     setLoading(true);
@@ -38,11 +51,9 @@ const EmployeesPage = () => {
 
   const openAdd = () => {
     setEditEmployee(null);
-    setForm({
-      name: '', email: '', phone: '', department: 'Engineering',
-      designation: '', salary: '', shiftStart: '09:00', shiftEnd: '18:00',
-      joiningDate: format(new Date(), 'yyyy-MM-dd'),
-    });
+    setForm(emptyForm);
+    setShowPassword(false);
+    setShowConfirm(false);
     setShowModal(true);
   };
 
@@ -54,24 +65,46 @@ const EmployeesPage = () => {
       salary: emp.salary || '', shiftStart: emp.shiftStart || '09:00',
       shiftEnd: emp.shiftEnd || '18:00',
       joiningDate: emp.joiningDate ? format(new Date(emp.joiningDate), 'yyyy-MM-dd') : '',
+      password: '', confirmPassword: '',
     });
     setShowModal(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Password validation for new employee
+    if (!editEmployee) {
+      if (!form.password) {
+        return toast.error('Password is required');
+      }
+      if (form.password.length < 6) {
+        return toast.error('Password must be at least 6 characters');
+      }
+      if (form.password !== form.confirmPassword) {
+        return toast.error('Passwords do not match');
+      }
+    }
+
+    setSubmitting(true);
     try {
+      const payload = { ...form };
+      delete payload.confirmPassword;
+      if (editEmployee) delete payload.password;
+
       if (editEmployee) {
-        await api.put(`/employees/${editEmployee._id}`, form);
-        toast.success('Employee updated!');
+        await api.put(`/employees/${editEmployee._id}`, payload);
+        toast.success('Employee updated successfully!');
       } else {
-        await api.post('/employees', form);
-        toast.success('Employee created! Default password: WorkPulse@123');
+        await api.post('/employees', payload);
+        toast.success(`Employee created! Login: ${form.email} / ${form.password}`);
       }
       setShowModal(false);
       fetchEmployees();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Operation failed');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -83,6 +116,31 @@ const EmployeesPage = () => {
     } catch (err) {
       toast.error('Failed to update status');
     }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (newPassword.length < 6) return toast.error('Password must be at least 6 characters');
+    if (newPassword !== confirmNewPassword) return toast.error('Passwords do not match');
+
+    try {
+      await api.put(`/employees/${resetTarget._id}/reset-password`, { newPassword });
+      toast.success(`Password reset successfully for ${resetTarget.name}`);
+      setShowResetModal(false);
+      setNewPassword('');
+      setConfirmNewPassword('');
+      setResetTarget(null);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Password reset failed');
+    }
+  };
+
+  const openResetPassword = (emp) => {
+    setResetTarget(emp);
+    setNewPassword('');
+    setConfirmNewPassword('');
+    setShowNewPwd(false);
+    setShowResetModal(true);
   };
 
   return (
@@ -131,9 +189,7 @@ const EmployeesPage = () => {
                 ))
               ) : employees.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="text-center py-12 text-gray-400">
-                    No employees found
-                  </td>
+                  <td colSpan="5" className="text-center py-12 text-gray-400">No employees found</td>
                 </tr>
               ) : (
                 employees.map((emp) => (
@@ -168,13 +224,20 @@ const EmployeesPage = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <button
                           onClick={() => openEdit(emp)}
                           className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                          title="Edit"
+                          title="Edit Employee"
                         >
                           <Edit size={15} />
+                        </button>
+                        <button
+                          onClick={() => openResetPassword(emp)}
+                          className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition"
+                          title="Reset Password"
+                        >
+                          <Key size={15} />
                         </button>
                         <button
                           onClick={() => toggleActive(emp)}
@@ -197,10 +260,10 @@ const EmployeesPage = () => {
         </div>
       </div>
 
-      {/* Add/Edit Modal */}
+      {/* Add/Edit Employee Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl max-h-screen overflow-y-auto">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-lg font-bold text-gray-800">
                 {editEmployee ? 'Edit Employee' : 'Add New Employee'}
@@ -211,6 +274,7 @@ const EmployeesPage = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Name & Email */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Full Name *</label>
@@ -218,7 +282,7 @@ const EmployeesPage = () => {
                     type="text"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder="John Doe"
+                    placeholder="Rahul Sharma"
                     className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
@@ -229,7 +293,7 @@ const EmployeesPage = () => {
                     type="email"
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    placeholder="john@company.com"
+                    placeholder="rahul@company.com"
                     className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required={!editEmployee}
                     disabled={!!editEmployee}
@@ -237,6 +301,69 @@ const EmployeesPage = () => {
                 </div>
               </div>
 
+              {/* Password fields — sirf new employee ke liye */}
+              {!editEmployee && (
+                <div className="border border-blue-100 bg-blue-50 rounded-xl p-4 space-y-3">
+                  <p className="text-xs font-semibold text-blue-700 flex items-center gap-1">
+                    <Key size={13} /> Employee Login Password Set Karo
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Password *</label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={form.password}
+                          onChange={(e) => setForm({ ...form, password: e.target.value })}
+                          placeholder="Min 6 characters"
+                          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
+                          minLength={6}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600"
+                        >
+                          {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Confirm Password *</label>
+                      <div className="relative">
+                        <input
+                          type={showConfirm ? 'text' : 'password'}
+                          value={form.confirmPassword}
+                          onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                          placeholder="Repeat password"
+                          className={`w-full border rounded-xl px-3 py-2.5 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            form.confirmPassword && form.password !== form.confirmPassword
+                              ? 'border-red-400 bg-red-50'
+                              : 'border-gray-300'
+                          }`}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirm(!showConfirm)}
+                          className="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600"
+                        >
+                          {showConfirm ? <EyeOff size={15} /> : <Eye size={15} />}
+                        </button>
+                      </div>
+                      {form.confirmPassword && form.password !== form.confirmPassword && (
+                        <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+                      )}
+                    </div>
+                  </div>
+                  {form.password && form.password === form.confirmPassword && (
+                    <p className="text-xs text-green-600">Passwords match</p>
+                  )}
+                </div>
+              )}
+
+              {/* Phone & Department */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Phone</label>
@@ -260,6 +387,7 @@ const EmployeesPage = () => {
                 </div>
               </div>
 
+              {/* Designation & Salary */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Designation</label>
@@ -272,7 +400,7 @@ const EmployeesPage = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Salary (₹)</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Salary (Rs.)</label>
                   <input
                     type="number"
                     value={form.salary}
@@ -283,6 +411,7 @@ const EmployeesPage = () => {
                 </div>
               </div>
 
+              {/* Shift & Joining */}
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Shift Start</label>
@@ -313,12 +442,6 @@ const EmployeesPage = () => {
                 </div>
               </div>
 
-              {!editEmployee && (
-                <div className="p-3 bg-blue-50 rounded-xl text-xs text-blue-700">
-                  Default password: <strong>WorkPulse@123</strong> — Employee should change it on first login.
-                </div>
-              )}
-
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
@@ -329,9 +452,88 @@ const EmployeesPage = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-sm font-medium transition"
+                  disabled={submitting}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-sm font-medium transition disabled:opacity-60"
                 >
-                  {editEmployee ? 'Update Employee' : 'Create Employee'}
+                  {submitting ? 'Saving...' : editEmployee ? 'Update Employee' : 'Create Employee'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Password Modal */}
+      {showResetModal && resetTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-gray-800">Reset Password</h3>
+              <button onClick={() => setShowResetModal(false)}><X size={20} className="text-gray-400" /></button>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-xl mb-4">
+              <div className="w-9 h-9 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center font-semibold flex-shrink-0">
+                {resetTarget.name?.charAt(0)}
+              </div>
+              <div>
+                <p className="font-medium text-sm text-gray-800">{resetTarget.name}</p>
+                <p className="text-xs text-gray-500">{resetTarget.email}</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleResetPassword} className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">New Password *</label>
+                <div className="relative">
+                  <input
+                    type={showNewPwd ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Min 6 characters"
+                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPwd(!showNewPwd)}
+                    className="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600"
+                  >
+                    {showNewPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Confirm New Password *</label>
+                <input
+                  type="password"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  placeholder="Repeat new password"
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    confirmNewPassword && newPassword !== confirmNewPassword ? 'border-red-400' : 'border-gray-300'
+                  }`}
+                  required
+                />
+                {confirmNewPassword && newPassword !== confirmNewPassword && (
+                  <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowResetModal(false)}
+                  className="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2.5 rounded-xl text-sm font-medium transition"
+                >
+                  Reset Password
                 </button>
               </div>
             </form>

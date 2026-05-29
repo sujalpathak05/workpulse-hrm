@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   createEmployee, getAllEmployees, getEmployee, updateEmployee,
   updateProfile, uploadProfileImage, uploadDocument, verifyDocument, getEmployeeStats,
+  resetEmployeePassword,
 } = require('../controllers/employeeController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -12,6 +13,7 @@ router.post('/', protect, authorize('super_admin', 'hr_admin'), createEmployee);
 router.get('/', protect, authorize('super_admin', 'hr_admin'), getAllEmployees);
 router.get('/:id', protect, getEmployee);
 router.put('/:id', protect, authorize('super_admin', 'hr_admin'), updateEmployee);
+router.put('/:id/reset-password', protect, authorize('super_admin', 'hr_admin'), resetEmployeePassword);
 router.put('/:empId/documents/:docId/verify', protect, authorize('super_admin', 'hr_admin'), verifyDocument);
 router.post('/:id/documents', protect, authorize('super_admin', 'hr_admin'), uploadDocument);
 

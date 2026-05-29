@@ -225,6 +225,33 @@ const getEmployeeStats = async (req, res) => {
   });
 };
 
+// @desc   Admin reset employee password
+// @route  PUT /api/employees/:id/reset-password
+const resetEmployeePassword = async (req, res) => {
+  const { newPassword } = req.body;
+
+  if (!newPassword || newPassword.length < 6) {
+    return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
+  }
+
+  const employee = await User.findById(req.params.id).select('+password');
+  if (!employee) {
+    return res.status(404).json({ success: false, message: 'Employee not found.' });
+  }
+
+  employee.password = newPassword;
+  await employee.save();
+
+  await sendNotification(
+    employee._id,
+    'Password Reset',
+    'Your login password has been reset by admin. Please login with your new password.',
+    'alert'
+  );
+
+  res.json({ success: true, message: `Password reset successfully for ${employee.name}.` });
+};
+
 module.exports = {
   createEmployee,
   getAllEmployees,
@@ -235,4 +262,5 @@ module.exports = {
   uploadDocument,
   verifyDocument,
   getEmployeeStats,
+  resetEmployeePassword,
 };
