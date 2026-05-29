@@ -87,18 +87,25 @@ const AttendanceAdminPage = () => {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-gray-600 text-sm">
-                    {r.checkIn?.time ? (
+                    {r.sessions?.[0]?.checkIn?.time ? (
                       <div>
-                        <p>{format(new Date(r.checkIn.time), 'hh:mm a')}</p>
+                        <p>{format(new Date(r.sessions[0].checkIn.time), 'hh:mm a')}</p>
                         {r.isLate && <p className="text-xs text-red-500">{r.lateMinutes}m late</p>}
+                        {r.sessions?.length > 1 && <p className="text-xs text-blue-500">{r.sessions.length} sessions</p>}
                       </div>
                     ) : '-'}
                   </td>
-                  <td className="px-4 py-3 text-gray-600 text-sm">{r.checkOut?.time ? format(new Date(r.checkOut.time), 'hh:mm a') : '-'}</td>
-                  <td className="px-4 py-3 text-gray-600 text-sm">{r.workHours ? `${r.workHours}h` : '-'}</td>
+                  <td className="px-4 py-3 text-gray-600 text-sm">
+                    {r.sessions?.[r.sessions.length - 1]?.checkOut?.time
+                      ? format(new Date(r.sessions[r.sessions.length - 1].checkOut.time), 'hh:mm a')
+                      : r.sessions?.some(s => !s.checkOut?.time)
+                      ? <span className="text-green-600 text-xs font-medium">Active</span>
+                      : '-'}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600 text-sm">{r.totalWorkHours ? `${r.totalWorkHours}h` : '-'}</td>
                   <td className="px-4 py-3">
-                    {r.checkIn?.location?.latitude ? (
-                      <a href={`https://www.google.com/maps?q=${r.checkIn.location.latitude},${r.checkIn.location.longitude}`}
+                    {r.sessions?.[0]?.checkIn?.location?.latitude ? (
+                      <a href={`https://www.google.com/maps?q=${r.sessions[0].checkIn.location.latitude},${r.sessions[0].checkIn.location.longitude}`}
                         target="_blank" rel="noreferrer"
                         className="flex items-center gap-1 text-blue-600 text-xs hover:underline">
                         <MapPin size={11} />{r.distanceFromOffice}m
@@ -129,9 +136,10 @@ const AttendanceAdminPage = () => {
                     <p className="font-medium text-gray-800 text-sm truncate">{r.user?.name}</p>
                     <p className="text-xs text-gray-400">{r.user?.employeeId} • {r.user?.department}</p>
                     <div className="flex items-center gap-2 mt-1 text-xs text-gray-500 flex-wrap">
-                      {r.checkIn?.time && <span>In: {format(new Date(r.checkIn.time), 'hh:mm a')}</span>}
-                      {r.checkOut?.time && <span>Out: {format(new Date(r.checkOut.time), 'hh:mm a')}</span>}
-                      {r.workHours > 0 && <span className="font-medium text-blue-600">{r.workHours}h</span>}
+                      {r.sessions?.[0]?.checkIn?.time && <span>In: {format(new Date(r.sessions[0].checkIn.time), 'hh:mm a')}</span>}
+                      {r.sessions?.[r.sessions.length-1]?.checkOut?.time && <span>Out: {format(new Date(r.sessions[r.sessions.length-1].checkOut.time), 'hh:mm a')}</span>}
+                      {r.totalWorkHours > 0 && <span className="font-medium text-blue-600">{r.totalWorkHours}h</span>}
+                      {r.sessions?.length > 1 && <span className="text-blue-500">{r.sessions.length} sessions</span>}
                     </div>
                     {r.isLate && <p className="text-xs text-red-500 mt-0.5">{r.lateMinutes} mins late</p>}
                   </div>

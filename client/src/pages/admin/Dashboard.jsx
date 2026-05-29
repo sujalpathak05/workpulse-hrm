@@ -131,7 +131,9 @@ const AdminDashboard = () => {
                 </div>
                 <div className="text-right flex-shrink-0">
                   <Badge status={a.status} />
-                  <p className="text-xs text-gray-400 mt-0.5">{a.checkIn?.time && format(new Date(a.checkIn.time), 'hh:mm a')}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {a.sessions?.[0]?.checkIn?.time && format(new Date(a.sessions[0].checkIn.time), 'hh:mm a')}
+                  </p>
                 </div>
               </div>
             ))}
